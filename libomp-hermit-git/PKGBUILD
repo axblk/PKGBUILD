@@ -1,0 +1,48 @@
+_pkgname="libomp-hermit"
+pkgname=$_pkgname-git
+pkgver=r790.a6a63d1
+pkgrel=1
+pkgdesc="Cross-build binary utilities for HermitCore"
+arch=('x86_64')
+url="https://github.com/hermitcore/openmp"
+license=('GPL')
+groups=()
+depends=()
+makedepends=('git' 'cmake' 'binutils-hermit' 'gcc-hermit' 'newlib-hermit' 'pte-hermit' 'libhermit')
+options=('libtool' 'staticlibs' '!buildflags' '!strip')
+provides=('libomp-hermit')
+conflicts=('libomp-hermit')
+source=("$_pkgname::git+https://github.com/hermitcore/openmp.git#branch=hermit")
+md5sums=('SKIP')
+
+pkgver() {
+	cd "$srcdir/$_pkgname"
+	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+	export PATH=/opt/hermit/bin:$PATH
+
+	cd "$srcdir/$_pkgname"
+
+	rm -rf build
+	mkdir build
+	cd build
+	cmake -DCMAKE_C_COMPILER=x86_64-hermit-gcc \
+		-DCMAKE_CXX_COMPILER=x86_64-hermit-g++ \
+		-DCMAKE_INSTALL_PREFIX=/opt/hermit/x86_64-hermit \
+		-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+		-DHERMIT=1 \
+		-DLIBOMP_ARCH=x86_64 \
+		-DLIBOMP_ENABLE_SHARED=OFF \
+		-DLIBOMP_FORTRAN_MODULES=OFF \
+		-DLIBOMP_OMPT_SUPPORT=OFF \
+		-DOPENMP_ENABLE_LIBOMPTARGET=OFF \
+		..
+	make
+}
+
+package() {
+	cd "$srcdir/$_pkgname/build"
+	make DESTDIR="$pkgdir/" install
+}
